@@ -16,4 +16,3 @@ The three modules are [linked_no_shadow.spv](ray_tracing__simple/shaders/linked_
 * `USE_DEFAULT` - the separate modules compiled by the sample framework
 * `USE_LINKED_SEPARATE` - two Circle-generated modules. rgen, rchit and rmiss are in linked_no_shadow.spv. rmiss_shadow is in rmiss_shadow.spv.
 * `USE_LINKED_TOGETHER` - one Circle-generate module with all four shaders. This is the broken one.
-* 
