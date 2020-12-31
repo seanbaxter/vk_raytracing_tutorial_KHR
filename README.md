@@ -12,7 +12,7 @@ There are bugs in `spirv-link` preventing me from using linking .spv files that 
 
 My gut tells me this is a problem when multiple rmiss are in the same module.
 
-The three modules are [ray_tracing__simple/shaders/linked_no_shadow.spv], [ray_tracing__simple/shaders/linked_all.spv] and [ray_tracing__simple/shaders/rmiss_shadow.spv]. In [ray_tracing__simple/hello_vulkan.cpp], use the macros:
+The three modules are [linked_no_shadow.spv](ray_tracing__simple/shaders/linked_no_shadow.spv), [linked_all.spv](ray_tracing__simple/shaders/linked_all.spv) and [rmiss_shadow.spv](ray_tracing__simple/shaders/rmiss_shadow.spv). In [hello_vulkan.cpp](ray_tracing__simple/hello_vulkan.cpp), use the macros:
 * `USE_DEFAULT` - the separate modules compiled by the sample framework
 * `USE_LINKED_SEPARATE` - two Circle-generated modules. rgen, rchit and rmiss are in linked_no_shadow.spv. rmiss_shadow is in rmiss_shadow.spv.
 * `USE_LINKED_TOGETHER` - one Circle-generate module with all four shaders. This is the broken one.
