@@ -791,21 +791,75 @@ void HelloVulkan::updateRtDescriptorSet()
 //--------------------------------------------------------------------------------------------------
 // Pipeline for the ray tracer: all shaders, raygen, chit, miss
 //
+
+#define USE_LINKED_SEPARATE
+
+
 void HelloVulkan::createRtPipeline()
 {
   std::vector<std::string> paths = defaultSearchPaths;
 
+
+
+#ifdef USE_DEFAULT
+
   vk::ShaderModule raygenSM =
       nvvk::createShaderModule(m_device,  //
-                               nvh::loadFile("shaders/raytrace.rgen.spv", true, paths, true));
+                               nvh::loadFile("shaders/raytrace.rgen.spv", true, paths));
   vk::ShaderModule missSM =
       nvvk::createShaderModule(m_device,  //
-                               nvh::loadFile("shaders/raytrace.rmiss.spv", true, paths, true));
+                               nvh::loadFile("shaders/raytrace.rmiss.spv", true, paths));
 
   // The second miss shader is invoked when a shadow ray misses the geometry. It
   // simply indicates that no occlusion has been found
+  vk::ShaderModule shadowmissSM =
+      nvvk::createShaderModule(m_device,
+                               nvh::loadFile("shaders/raytraceShadow.rmiss.spv", true, paths));
+
+  // Hit Group - Closest Hit + AnyHit
+  vk::ShaderModule chitSM =
+      nvvk::createShaderModule(m_device,  //
+                               nvh::loadFile("shaders/raytrace.rchit.spv", true, paths));
+
+  const char* rgen_name = "main";
+  const char* rchit_name = "main";
+  const char* rmiss_name = "main";
+  const char* rmiss_shadow_name = "main";
+
+#elif defined(USE_LINKED_SEPARATE)
+  vk::ShaderModule linked_no_shadow_sm = nvvk::createShaderModule(
+    m_device, 
+    nvh::loadFile("shaders/linked_no_shadow.spv", true, paths)
+  );
+
   vk::ShaderModule shadowmissSM = nvvk::createShaderModule(
-      m_device, nvh::loadFile("shaders/raytraceShadow.rmiss.spv", true, paths, true));
+    m_device, 
+    nvh::loadFile("shaders/rmiss_shadow.spv", true, paths)
+  );
+
+  const char* rgen_name = "_Z11rgen_shaderv";
+  const char* rchit_name = "_Z12rchit_shaderv";
+  const char* rmiss_name = "_Z12rmiss_shaderv";
+  const char* rmiss_shadow_name = "_Z19rmiss_shadow_shaderv";
+  auto& raygenSM = linked_no_shadow_sm;
+  auto& missSM = linked_no_shadow_sm;
+  auto& chitSM = linked_no_shadow_sm;
+
+#elif defined(USE_LINKED_TOGETHER)
+  vk::ShaderModule linked_all_sm = nvvk::createShaderModule(
+    m_device, 
+    nvh::loadFile("shaders/linked_all.spv", true, paths)
+  );
+  const char* rgen_name = "_Z11rgen_shaderv";
+  const char* rchit_name = "_Z12rchit_shaderv";
+  const char* rmiss_name = "_Z12rmiss_shaderv";
+  const char* rmiss_shadow_name = "_Z19rmiss_shadow_shaderv";
+  auto& raygenSM = linked_all_sm;
+  auto& missSM = linked_all_sm;
+  auto& chitSM = linked_all_sm;
+  auto& shadowmissSM = linked_all_sm;
+
+#endif
 
 
   std::vector<vk::PipelineShaderStageCreateInfo> stages;
@@ -814,30 +868,26 @@ void HelloVulkan::createRtPipeline()
   vk::RayTracingShaderGroupCreateInfoKHR rg{vk::RayTracingShaderGroupTypeKHR::eGeneral,
                                             VK_SHADER_UNUSED_KHR, VK_SHADER_UNUSED_KHR,
                                             VK_SHADER_UNUSED_KHR, VK_SHADER_UNUSED_KHR};
-  stages.push_back({{}, vk::ShaderStageFlagBits::eRaygenKHR, raygenSM, "main"});
+  stages.push_back({{}, vk::ShaderStageFlagBits::eRaygenKHR, raygenSM, rgen_name});
   rg.setGeneralShader(static_cast<uint32_t>(stages.size() - 1));
   m_rtShaderGroups.push_back(rg);
   // Miss
   vk::RayTracingShaderGroupCreateInfoKHR mg{vk::RayTracingShaderGroupTypeKHR::eGeneral,
                                             VK_SHADER_UNUSED_KHR, VK_SHADER_UNUSED_KHR,
                                             VK_SHADER_UNUSED_KHR, VK_SHADER_UNUSED_KHR};
-  stages.push_back({{}, vk::ShaderStageFlagBits::eMissKHR, missSM, "main"});
+  stages.push_back({{}, vk::ShaderStageFlagBits::eMissKHR, missSM, rmiss_name});
   mg.setGeneralShader(static_cast<uint32_t>(stages.size() - 1));
   m_rtShaderGroups.push_back(mg);
   // Shadow Miss
-  stages.push_back({{}, vk::ShaderStageFlagBits::eMissKHR, shadowmissSM, "main"});
+  stages.push_back({{}, vk::ShaderStageFlagBits::eMissKHR, shadowmissSM, rmiss_shadow_name});
   mg.setGeneralShader(static_cast<uint32_t>(stages.size() - 1));
   m_rtShaderGroups.push_back(mg);
 
   // Hit Group - Closest Hit + AnyHit
-  vk::ShaderModule chitSM =
-      nvvk::createShaderModule(m_device,  //
-                               nvh::loadFile("shaders/raytrace.rchit.spv", true, paths, true));
-
   vk::RayTracingShaderGroupCreateInfoKHR hg{vk::RayTracingShaderGroupTypeKHR::eTrianglesHitGroup,
                                             VK_SHADER_UNUSED_KHR, VK_SHADER_UNUSED_KHR,
                                             VK_SHADER_UNUSED_KHR, VK_SHADER_UNUSED_KHR};
-  stages.push_back({{}, vk::ShaderStageFlagBits::eClosestHitKHR, chitSM, "main"});
+  stages.push_back({{}, vk::ShaderStageFlagBits::eClosestHitKHR, chitSM, rchit_name});
   hg.setClosestHitShader(static_cast<uint32_t>(stages.size() - 1));
   m_rtShaderGroups.push_back(hg);
 
@@ -879,10 +929,10 @@ void HelloVulkan::createRtPipeline()
     throw std::runtime_error("Device fails to support ray recursion (m_rtProperties.maxRayRecursionDepth <= 1)");
   }
 
-  m_device.destroy(raygenSM);
-  m_device.destroy(missSM);
-  m_device.destroy(shadowmissSM);
-  m_device.destroy(chitSM);
+  // m_device.destroy(raygenSM);
+  // m_device.destroy(missSM);
+  // m_device.destroy(shadowmissSM);
+  // m_device.destroy(chitSM);
 }
 
 //--------------------------------------------------------------------------------------------------
