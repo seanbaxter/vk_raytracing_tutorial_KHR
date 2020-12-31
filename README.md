@@ -1,4 +1,5 @@
 ﻿# Bad rendering when rmiss linked in with rchit
+### Or maybe multiple rmiss in one module?
 
 When all four shader stages are linked into one SPIR-V module, the TraceRay function the rchit sends out always comes back with a shadow hit, meaning the rmiss_shadow is never invoked to clear its shadow flag.
 
