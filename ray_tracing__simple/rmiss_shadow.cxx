@@ -1,4 +1,4 @@
-#include "shaders.hxx"
+#include "shader_common.hxx"
 
 template<typename type_t, int location>
 [[using spirv: rayPayloadIn, location(location)]]

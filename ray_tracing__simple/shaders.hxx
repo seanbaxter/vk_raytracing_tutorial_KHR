@@ -26,5 +26,15 @@ struct raster_shaders_t {
 
   const char* vert;
   const char* frag;
-  const char* frag_post;
 };
+extern raster_shaders_t raster_shaders;
+
+struct post_shaders_t {
+  const char* module_data;
+  size_t module_size;
+
+  const char* vert;
+  const char* frag;
+};
+
+extern post_shaders_t post_shaders;

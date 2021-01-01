@@ -1,60 +1,4 @@
-#include <cmath>
-#include "shaders.hxx"
-
-struct camera_t {
-  mat4 view, proj, viewInv, projInv;
-};
-
-struct Constants {
-  float clearColor[4];
-  vec3  lightPosition;
-  float lightIntensity;
-  int   lightType;
-};
-
-struct Vertex {
-  vec3 pos;
-  vec3 nrm;
-  vec3 color;
-  float uv[2];    // Circle's vec2 is 8-byte aligned, which differs from 
-                  // nvmath's which generates this struct on the host side.
-};
-
-struct WaveFrontMaterial {
-  vec3  ambient;
-  vec3  diffuse;
-  vec3  specular;
-  vec3  transmittance;
-  vec3  emission;
-  float shininess;
-  float ior;       // index of refraction
-  float dissolve;  // 1 == opaque; 0 == fully transparent
-  int   illum;     // illumination model (see http://www.fileformat.info/format/material/)
-  int   textureId;
-};
-
-struct SceneDesc {
-  int  objId;
-  int  txtOffset;
-  float transfo[16];
-  float transfoIT[16];
-};
-
-struct hitPayload {
-  vec3 hitValue;
-};
-
-template<typename type_t>
-[[using spirv: push]]
-type_t shader_push;
-
-template<typename type_t, int location>
-[[using spirv: rayPayload, location(location)]]
-type_t shader_rayPayload;
-
-template<typename type_t, int location>
-[[using spirv: rayPayloadIn, location(location)]]
-type_t shader_rayPayloadIn;
+#include "shader_common.hxx"
 
 // Buffers.
 [[using spirv: uniform, binding(0), set(1)]]
@@ -144,34 +88,12 @@ void rmiss_shadow_shader() {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-inline vec3 computeDiffuse(WaveFrontMaterial mat, vec3 lightDir, vec3 normal) {
-  // Lambertian
-  float dotNL = max(dot(normal, lightDir), 0.f);
-  vec3  c     = mat.diffuse * dotNL;
-  if(mat.illum >= 1)
-    c += mat.ambient;
-  return c;
-}
-
-vec3 computeSpecular(WaveFrontMaterial mat, vec3 viewDir, vec3 lightDir, 
-  vec3 normal) {
-
-  vec3 v { };
-  if(mat.illum >= 2) {
-    // Compute specular only if not in shadow.
-    const float kShininess = max(mat.shininess, 4.f);
-
-    // Specular
-    const float kEnergyConservation = (2 + kShininess) / (2 * M_PIf32);
-    vec3        V                   = normalize(-viewDir);
-    vec3        R                   = reflect(-lightDir, normal);
-    float       specular            = kEnergyConservation * pow(max(dot(V, R), 0.f), kShininess);
-
-    v = mat.specular * specular;
-  }
-
-  return v;
-}
+struct Constants {
+  float clearColor[4];
+  vec3  lightPosition;
+  float lightIntensity;
+  int   lightType;
+};
 
 [[spirv::rchit]]
 void rchit_shader() {
@@ -207,13 +129,13 @@ void rchit_shader() {
 
   vec3 L = normalize(constants.lightPosition - worldPos);
   float lightIntensity = constants.lightIntensity;
-  float lightDistance = 100000.0f;
+  float d = 100000.0f;
 
   if(constants.lightType == 0) {
     // Point light.
     vec3 lDir = constants.lightPosition - worldPos;
-    lightDistance = length(lDir);
-    lightIntensity = constants.lightIntensity / (lightDistance * lightDistance);
+    d = length(lDir);
+    lightIntensity = constants.lightIntensity / (d * d);
     L = normalize(lDir);
 
   } else {
@@ -240,7 +162,7 @@ void rchit_shader() {
 
   if(dot(normal, L) > 0) {
     float tMin = .001f;
-    float tMax = lightDistance;
+    float tMax = d;
     vec3 origin = glray_WorldRayOrigin + glray_WorldRayDirection * glray_HitT;
 
     uint flags = gl_RayFlagsTerminateOnFirstHit | gl_RayFlagsOpaque | 

@@ -25,7 +25,7 @@ _add_project_definitions(${PROJNAME})
 #--------------------------------------------------------------------------------------------------
 # Source files for this project
 #
-file(GLOB SOURCE_FILES *.cpp *.hpp *.inl *.h *.c shaders.cxx shaders2.cxx)
+file(GLOB SOURCE_FILES *.cpp *.hpp *.inl *.h *.c raytrace.cxx rmiss_shadow.cxx raster.cxx post.cxx)
 file(GLOB EXTRA_COMMON ${TUTO_KHR_DIR}/common/*.*)
 list(APPEND COMMON_SOURCE_FILES ${EXTRA_COMMON})
 include_directories(${TUTO_KHR_DIR}/common)
@@ -37,8 +37,7 @@ target_sources(${PROJNAME} PUBLIC ${SOURCE_FILES} ${HEADER_FILES})
 target_sources(${PROJNAME} PUBLIC ${COMMON_SOURCE_FILES})
 target_sources(${PROJNAME} PUBLIC ${PACKAGE_SOURCE_FILES})
 
-set_source_files_properties(shaders.cxx PROPERTIES COMPILE_FLAGS -shader)
-set_source_files_properties(shaders2.cxx PROPERTIES COMPILE_FLAGS -shader)
+set_source_files_properties(raytrace.cxx rmiss_shadow.cxx raster.cxx post.cxx PROPERTIES COMPILE_FLAGS -shader)
 
 
 #--------------------------------------------------------------------------------------------------
