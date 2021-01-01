@@ -44,6 +44,7 @@ extern std::vector<std::string> defaultSearchPaths;
 #include "nvvk/renderpasses_vk.hpp"
 #include "nvvk/shaders_vk.hpp"
 
+#include "shaders.hxx"
 
 // Holding the camera matrices
 struct CameraMatrices
@@ -793,6 +794,21 @@ void HelloVulkan::updateRtDescriptorSet()
 //
 void HelloVulkan::createRtPipeline()
 {
+
+  // Load the Circle module.
+  vk::ShaderModule raytraceSM = nvvk::createShaderModule(
+    m_device,
+    (const uint32_t*)raytrace_shaders.module_data, 
+    raytrace_shaders.module_size
+  );
+
+  vk::ShaderModule shadowSM = nvvk::createShaderModule(
+    m_device,
+    (const uint32_t*)shadow_shaders.module_data, 
+    shadow_shaders.module_size
+  );
+
+
   std::vector<std::string> paths = defaultSearchPaths;
 
   vk::ShaderModule raygenSM =
@@ -814,18 +830,23 @@ void HelloVulkan::createRtPipeline()
   vk::RayTracingShaderGroupCreateInfoKHR rg{vk::RayTracingShaderGroupTypeKHR::eGeneral,
                                             VK_SHADER_UNUSED_KHR, VK_SHADER_UNUSED_KHR,
                                             VK_SHADER_UNUSED_KHR, VK_SHADER_UNUSED_KHR};
-  stages.push_back({{}, vk::ShaderStageFlagBits::eRaygenKHR, raygenSM, "main"});
+  // stages.push_back({{}, vk::ShaderStageFlagBits::eRaygenKHR, raygenSM, "main"});
+  stages.push_back({{}, vk::ShaderStageFlagBits::eRaygenKHR, raytraceSM, raytrace_shaders.rgen});
   rg.setGeneralShader(static_cast<uint32_t>(stages.size() - 1));
   m_rtShaderGroups.push_back(rg);
   // Miss
   vk::RayTracingShaderGroupCreateInfoKHR mg{vk::RayTracingShaderGroupTypeKHR::eGeneral,
                                             VK_SHADER_UNUSED_KHR, VK_SHADER_UNUSED_KHR,
                                             VK_SHADER_UNUSED_KHR, VK_SHADER_UNUSED_KHR};
-  stages.push_back({{}, vk::ShaderStageFlagBits::eMissKHR, missSM, "main"});
+  // stages.push_back({{}, vk::ShaderStageFlagBits::eMissKHR, missSM, "main"});
+  stages.push_back({{}, vk::ShaderStageFlagBits::eMissKHR, raytraceSM, raytrace_shaders.rmiss});
+
   mg.setGeneralShader(static_cast<uint32_t>(stages.size() - 1));
   m_rtShaderGroups.push_back(mg);
   // Shadow Miss
-  stages.push_back({{}, vk::ShaderStageFlagBits::eMissKHR, shadowmissSM, "main"});
+  //stages.push_back({{}, vk::ShaderStageFlagBits::eMissKHR, shadowmissSM, "main"});
+  // stages.push_back({{}, vk::ShaderStageFlagBits::eMissKHR, raytraceSM, raytrace_shaders.rmiss_shadow});
+  stages.push_back({{}, vk::ShaderStageFlagBits::eMissKHR, shadowSM, shadow_shaders.rmiss_shadow});
   mg.setGeneralShader(static_cast<uint32_t>(stages.size() - 1));
   m_rtShaderGroups.push_back(mg);
 
@@ -837,7 +858,8 @@ void HelloVulkan::createRtPipeline()
   vk::RayTracingShaderGroupCreateInfoKHR hg{vk::RayTracingShaderGroupTypeKHR::eTrianglesHitGroup,
                                             VK_SHADER_UNUSED_KHR, VK_SHADER_UNUSED_KHR,
                                             VK_SHADER_UNUSED_KHR, VK_SHADER_UNUSED_KHR};
-  stages.push_back({{}, vk::ShaderStageFlagBits::eClosestHitKHR, chitSM, "main"});
+  // stages.push_back({{}, vk::ShaderStageFlagBits::eClosestHitKHR, chitSM, "main"});
+   stages.push_back({{}, vk::ShaderStageFlagBits::eClosestHitKHR, raytraceSM, raytrace_shaders.rchit});
   hg.setClosestHitShader(static_cast<uint32_t>(stages.size() - 1));
   m_rtShaderGroups.push_back(hg);
 
