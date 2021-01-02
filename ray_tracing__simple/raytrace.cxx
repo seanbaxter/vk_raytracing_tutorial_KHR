@@ -204,6 +204,12 @@ raytrace_shaders_t raytrace_shaders {
   __spirv_size,
   @spirv(rgen_shader),
   @spirv(rmiss_shader),
+
+  // NVIDIA Bug 3092604:
+  // rmiss shader never invoked from rchit if more than 1 rmiss is in the
+  // SPIR-V module. The rmiss_shadow_shader is compiled in rmiss_shadow.cxx
+  // until this bug ins fixed.
   0, // @spirv(rmiss_shadow_shader),
+
   @spirv(rchit_shader)
 }; 
