@@ -1,3 +1,7 @@
+#if __circle_build__ < 111
+#error "Must compile with Circle build 111 or later"
+#endif
+
 #pragma once
 #include "shaders.hxx"
 #include <cmath>
